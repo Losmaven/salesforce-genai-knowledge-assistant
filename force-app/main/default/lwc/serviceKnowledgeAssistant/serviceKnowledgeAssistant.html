@@ -1,0 +1,107 @@
+<template>
+    <lightning-card title="Service Knowledge AI Assistant" icon-name="utility:einstein">
+        <!-- Header Action: Toggle between Pro-Code SOSL RAG and Native Prompt Builder RAG -->
+        <div slot="actions" class="slds-grid slds-grid_vertical-align-center">
+            <lightning-input 
+                type="toggle" 
+                label="Use Prompt Builder (Data Cloud)" 
+                name="engineToggle"
+                checked={usePromptBuilder}
+                onchange={handleEngineToggle}
+                message-toggle-active="Prompt Builder"
+                message-toggle-inactive="Models API + SOSL">
+            </lightning-input>
+        </div>
+
+        <!-- Scrollable Chat Window -->
+        <div class="slds-p-around_small chat-viewport" lwc:ref="chatViewport">
+            <template for:each={messages} for:item="msg">
+                <div key={msg.id} class={msg.rowClass}>
+                    <div class={msg.bubbleClass}>
+                        <div class="slds-grid slds-grid_align-spread slds-m-bottom_xx-small">
+                            <span class="slds-text-title_bold">{msg.sender}</span>
+                            <template lwc:if={msg.engineBadge}>
+                                <span class="slds-badge slds-badge_lightest engine-badge">{msg.engineBadge}</span>
+                            </template>
+                        </div>
+
+                        <div class="message-content">
+                            <lightning-formatted-rich-text value={msg.text}></lightning-formatted-rich-text>
+                        </div>
+
+                        <!-- Source Citations Pill Bar -->
+                        <template lwc:if={msg.hasCitations}>
+                            <div class="slds-m-top_x-small slds-border_top slds-p-top_xx-small">
+                                <span class="slds-text-title_caps slds-text-color_weak citation-label">Sources: </span>
+                                <template for:each={msg.citations} for:item="cit">
+                                    <a key={cit.articleId} 
+                                       data-id={cit.articleId} 
+                                       onclick={handleNavigateToArticle}
+                                       class="slds-badge slds-m-right_xx-small citation-link">
+                                        {cit.title}
+                                    </a>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Copy to Clipboard Utility for AI Replies -->
+                        <template lwc:if={msg.isAiReply}>
+                            <div class="slds-m-top_xx-small slds-text-align_right">
+                                <lightning-button-icon 
+                                    icon-name="utility:copy" 
+                                    variant="bare" 
+                                    size="small"
+                                    alternative-text="Copy answer" 
+                                    title="Copy answer to clipboard"
+                                    data-text={msg.text}
+                                    onclick={handleCopyText}>
+                                </lightning-button-icon>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Loading Spinner State -->
+            <template lwc:if={isLoading}>
+                <div class="slds-p-vertical_small slds-text-color_weak slds-grid slds-grid_vertical-align-center">
+                    <lightning-spinner alternative-text="Loading" size="x-small" class="slds-m-right_x-small"></lightning-spinner>
+                    <span><em>Retrieving Knowledge Articles &amp; generating grounded answer...</em></span>
+                </div>
+            </template>
+        </div>
+
+        <!-- Input Footer -->
+        <div slot="footer" class="slds-grid slds-gutters_xx-small">
+            <div class="slds-col slds-grow">
+                <lightning-input 
+                    type="text" 
+                    variant="label-hidden" 
+                    placeholder="Ask a policy or troubleshooting question..." 
+                    value={userInput} 
+                    onchange={handleInputChange}
+                    onkeydown={handleKeyDown}
+                    disabled={isLoading}>
+                </lightning-input>
+            </div>
+            <div class="slds-col slds-no-flex">
+                <lightning-button 
+                    variant="brand" 
+                    label="Ask AI" 
+                    onclick={handleSend} 
+                    disabled={isSendDisabled}>
+                </lightning-button>
+            </div>
+            <div class="slds-col slds-no-flex">
+                <lightning-button-icon 
+                    icon-name="utility:delete" 
+                    variant="border-filled" 
+                    alternative-text="Clear Chat" 
+                    title="Clear Conversation"
+                    onclick={handleClearChat}
+                    disabled={isLoading}>
+                </lightning-button-icon>
+            </div>
+        </div>
+    </lightning-card>
+</template>
